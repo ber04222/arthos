@@ -18,7 +18,7 @@ from data import NIFTY50, NIFTY_ETF, PERIODS, get_fundamentals, get_history, get
 from strategy import analyze
 from valuation import valuation
 
-st.set_page_config(page_title="Arthos", page_icon="◆", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="Arthos", page_icon="◆", layout="wide", initial_sidebar_state="auto")
 
 st.markdown(f"""
 <style>
@@ -70,9 +70,45 @@ div[data-testid="stVerticalBlockBorderWrapper"] {{ border-radius: 12px !importan
 .plan th {{ color:{FAINT}; font-weight:500; font-size:.72rem; text-transform:uppercase; letter-spacing:.06em; text-align:left; }}
 .plan table {{ width:100%; border-collapse:collapse; }}
 .plan tr {{ border-bottom:1px solid #F1F5F9; }}
+
+/* scan cards (phones) */
+.scard {{ background:#FFFFFF; border:1px solid #E5E7EB; border-radius:14px; padding:12px 14px; margin-bottom:10px; }}
+.scard .top {{ display:flex; justify-content:space-between; align-items:baseline; gap:8px; }}
+.scard .sym {{ font-weight:700; color:{INK}; font-size:1rem; }}
+.scard .px {{ font-weight:600; color:{INK}; font-variant-numeric: tabular-nums; }}
+.scard .bar {{ height:6px; background:#EEF0F3; border-radius:99px; margin:9px 0 4px; overflow:hidden; }}
+.scard .bar > div {{ height:100%; background:{ACCENT}; border-radius:99px; }}
+.scard .meta {{ color:{FAINT}; font-size:.78rem; display:flex; justify-content:space-between; }}
+.scard .sigs {{ color:{MUTED}; font-size:.82rem; margin:6px 0 8px; }}
+.scard .lv {{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; border-top:1px solid #F1F5F9; padding-top:8px; }}
+.scard .lv span {{ display:block; font-size:.68rem; color:{FAINT}; text-transform:uppercase; letter-spacing:.06em; }}
+.scard .lv b {{ font-size:.88rem; font-variant-numeric: tabular-nums; }}
+.st-key-mobile_list {{ display:none; }}
+
+@media (max-width: 768px) {{
+  .block-container {{ padding: 0.6rem 0.85rem 4rem !important; }}
+  .brand .name {{ font-size:1.25rem; }}
+  .brand .tag {{ display:none; }}
+  .mkt {{ text-align:left; }}
+  /* sticky, swipeable tab bar */
+  .stTabs [data-baseweb="tab-list"] {{ position: sticky; top: 0; z-index: 99; background: #F7F8FA; gap: 1.2rem;
+                                      overflow-x: auto; scrollbar-width: none; }}
+  .stTabs [data-baseweb="tab"] {{ padding: .75rem 0; font-size: .95rem; }}
+  /* metrics: two per row, compact */
+  [class*="st-key-kpis"] [data-testid="stHorizontalBlock"] {{ flex-wrap: wrap !important; gap: .6rem !important; }}
+  [class*="st-key-kpis"] [data-testid="stColumn"] {{ flex: 1 1 calc(50% - .6rem) !important;
+                                                    min-width: calc(50% - .6rem) !important; }}
+  [data-testid="stMetric"] {{ padding: 10px 12px; }}
+  [data-testid="stMetricValue"] {{ font-size: 1.15rem !important; }}
+  /* swap the wide table for cards */
+  .st-key-desktop_table {{ display:none; }}
+  .st-key-mobile_list {{ display:block; }}
+  /* bigger touch targets */
+  .stButton button, [data-testid="stPopover"] button {{ min-height: 46px; }}
+}}
 </style>""", unsafe_allow_html=True)
 
-CHART_CFG = {"displayModeBar": False}
+CHART_CFG = {"displayModeBar": False, "scrollZoom": False}
 
 
 # ----------------------------------------------------------------- sidebar
@@ -81,7 +117,7 @@ with st.sidebar:
                 unsafe_allow_html=True)
     st.write("")
     st.markdown("<div class='section'>Data</div>", unsafe_allow_html=True)
-    demo = st.toggle("Demo data (offline)", value=False, help="Synthetic prices for when Yahoo Finance is unreachable.")
+    demo = st.toggle("Demo data (offline)", value=st.query_params.get("demo") == "1", help="Synthetic prices for when Yahoo Finance is unreachable.")
     st.markdown("<div class='section'>Chart</div>", unsafe_allow_html=True)
     emas = st.pills("Moving averages", [9, 21, 50, 200], default=[21, 50], selection_mode="multi",
                     format_func=lambda n: f"EMA {n}") or []
@@ -152,6 +188,7 @@ def run_scan(symbols: list[str]) -> tuple[pd.DataFrame, Counter]:
     if not data:
         status.update(label="No data returned - Yahoo may be unreachable. Try Demo data.", state="error")
         return pd.DataFrame(), Counter()
+    st.session_state.failed = sorted(set(symbols) - {k.replace(".NS", "") for k in data})
     rows, fams = [], Counter()
     for i, (sym, df) in enumerate(data.items()):
         status.update(label=steps[1 + int(3 * i / len(data))] + "…")
@@ -190,7 +227,12 @@ with tab_scan:
         st.markdown("<div class='note'>Run a scan to rank the Nifty 50 by trend, momentum, volume and "
                     "fresh patterns, with entry, stop and target for each stock.</div>", unsafe_allow_html=True)
     else:
-        m = st.columns(4)
+        failed = st.session_state.get("failed") or []
+        if failed:
+            st.markdown(f"<div class='note'>Couldn't load {len(failed)} ticker(s): <b>{', '.join(failed)}</b>. "
+                        "Yahoo may have renamed or delisted them. Update <code>NIFTY50</code> in "
+                        "<code>data.py</code>.</div>", unsafe_allow_html=True)
+        m = st.container(key="kpis_scan").columns(4)
         m[0].metric("Stocks scanned", len(res))
         m[1].metric("Breakouts (10d)", int(res.Breakout.sum()))
         m[2].metric("Long / Short", f"{int((res.Bias == 'LONG').sum())} / {int((res.Bias == 'SHORT').sum())}")
@@ -219,11 +261,38 @@ with tab_scan:
             view = view[view.Breakout]
         view = view.drop(columns=["Breakout", "Vol x"]).reset_index(drop=True)
 
+        desktop = st.container(key="desktop_table")
+        mobile = st.container(key="mobile_list")
+        with mobile:
+            cards = []
+            for _, r in view.head(30).iterrows():
+                kind = "up" if r.Bias == "LONG" else "down"
+                chg_col = UP if r["Chg %"] >= 0 else DOWN
+                cards.append(
+                    f"<div class='scard'><div class='top'><div><span class='sym'>{r.Symbol}</span> &nbsp;"
+                    f"{pill(r.Bias, kind)}</div><div class='px'>{fmt(r.Price)} "
+                    f"<span style='color:{chg_col};font-size:.82rem'>{r['Chg %']:+.2f}%</span></div></div>"
+                    f"<div class='bar'><div style='width:{r.Score}%'></div></div>"
+                    f"<div class='meta'><span>Score <b style='color:{INK}'>{r.Score}</b></span>"
+                    f"<span>RSI {r.RSI:.0f} · 3M {r['3M %']:+.1f}%</span></div>"
+                    f"<div class='sigs'>{r.Signals}</div>"
+                    f"<div class='lv'><div><span>Entry</span><b>{r.Entry:,.2f}</b></div>"
+                    f"<div><span>Stop</span><b style='color:{DOWN}'>{r.Stop:,.2f}</b></div>"
+                    f"<div><span>Target</span><b style='color:{UP}'>{r.Target:,.2f}</b></div></div></div>")
+            st.markdown("".join(cards) or "<div class='note'>No stocks match these filters.</div>",
+                        unsafe_allow_html=True)
+            if len(view) > 30:
+                st.caption(f"Showing top 30 of {len(view)}. Raise the minimum score to narrow the list.")
+            pick = st.selectbox("Open a stock in Analysis", ["—"] + list(view.Symbol), key="mobile_pick")
+            if pick != "—":
+                st.session_state.symbol = pick
+                st.caption(f"**{pick}** selected · tap the Analysis tab.")
+
         styled = (view.style
                   .map(lambda v: f"color:{UP};font-weight:600" if v == "LONG" else f"color:{DOWN};font-weight:600",
                        subset=["Bias"])
                   .map(lambda v: f"color:{UP}" if v > 0 else f"color:{DOWN}" if v < 0 else "", subset=["Chg %", "3M %"]))
-        sel = st.dataframe(
+        sel = desktop.dataframe(
             styled, hide_index=True, use_container_width=True, height=min(38 * len(view) + 40, 560),
             on_select="rerun", selection_mode="single-row",
             column_config={
@@ -241,7 +310,7 @@ with tab_scan:
             })
         if sel and sel.selection.rows:
             st.session_state.symbol = view.iloc[sel.selection.rows[0]]["Symbol"]
-            st.caption(f"Selected **{st.session_state.symbol}** · open the Analysis tab for the full chart.")
+            desktop.caption(f"Selected **{st.session_state.symbol}** · open the Analysis tab for the full chart.")
 
 
 # ----------------------------------------------------------------- analysis
@@ -266,7 +335,7 @@ with tab_chart:
     last, prev = df.iloc[-1], df.iloc[-2]
     chg = 100 * (last.Close / prev.Close - 1)
 
-    k = st.columns(5)
+    k = st.container(key="kpis_stock").columns(5)
     k[0].metric(symbol, fmt(last.Close), f"{chg:+.2f}%")
     k[1].metric("Score", f"{sc['score']} / 100")
     k[2].metric("Bias", p["direction"].title())
@@ -337,7 +406,7 @@ with tab_val:
                         f"{b['percentile']:.0f}th percentile of its history</span>", unsafe_allow_html=True)
             st.plotly_chart(charts.percentile_gauge(b["percentile"]), use_container_width=True, config=CHART_CFG,
                             key=f"gauge_{key}")
-            m = st.columns(3)
+            m = st.container(key=f"kpis_val_{key}").columns(3)
             m[0].metric("Current", f"{b['current']:.1f}")
             m[1].metric("Median", f"{b['median']:.1f}")
             m[2].metric("Low / High", f"{b['min']:.0f} / {b['max']:.0f}")
@@ -349,7 +418,7 @@ with tab_val:
     if info:
         st.markdown("<div class='section'>Fundamentals</div>", unsafe_allow_html=True)
         mc = info.get("marketCap")
-        f = st.columns(5)
+        f = st.container(key="kpis_fund").columns(5)
         f[0].metric("Sector", info.get("sector", "—"))
         f[1].metric("Market cap", (f"₹{mc / 1e12:,.2f} L Cr" if mc >= 1e12 else f"₹{mc / 1e7:,.0f} Cr") if mc else "—")
         f[2].metric("ROE", f"{100 * info['returnOnEquity']:.1f}%" if info.get("returnOnEquity") else "—")
@@ -371,10 +440,13 @@ with tab_ai:
     client = ai.get_client(api_key)
     st.markdown(f"#### Ask about {sym}")
     if client is None:
-        st.markdown("<div class='note'>Add your Anthropic API key in the sidebar (or set "
-                    "<code>ANTHROPIC_API_KEY</code>) to chat with Claude about this stock.</div>",
-                    unsafe_allow_html=True)
-    else:
+        st.markdown("<div class='note'>Paste your Anthropic API key to chat with Claude about this stock. "
+                    "It stays in this browser session only.</div>", unsafe_allow_html=True)
+        inline_key = st.text_input("API key", type="password", placeholder="sk-ant-…", key="inline_key",
+                                   label_visibility="collapsed")
+        if inline_key:
+            client = ai.get_client(inline_key)
+    if client is not None:
         context = ai.build_context(sym, st.session_state.result, st.session_state.get("val"))
         history = st.session_state.chat.setdefault(sym, [])
         choice = st.pills("Suggestions", list(SUGGESTIONS), label_visibility="collapsed", key=f"sugg_{len(history)}")

@@ -24,6 +24,7 @@ def base_layout(fig: go.Figure, height: int, **kw) -> go.Figure:
     fig.update_layout(
         height=height, template="plotly_white", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
         font=dict(family=FONT, size=12, color=MUTED), margin=dict(l=8, r=8, t=8, b=8),
+        dragmode=False,  # let touch gestures scroll the page on phones
         hoverlabel=dict(bgcolor="white", bordercolor=BORDER, font=dict(family=FONT, color=INK, size=12)),
         legend=dict(orientation="h", x=0, y=1.04, yanchor="bottom", font=dict(size=11, color=MUTED),
                     bgcolor="rgba(0,0,0,0)"),

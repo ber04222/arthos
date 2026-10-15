@@ -7,14 +7,20 @@ from indicators import add_all
 from patterns import detect_all, support_resistance
 
 
-def trade_plan(df: pd.DataFrame, sigs: list[dict], levels: dict) -> dict:
+def trade_plan(df: pd.DataFrame, sigs: list[dict], levels: dict, total_score: int) -> dict:
     last = df.iloc[-1]
     px, a = float(last["Close"]), float(last["ATR"])
     recent = [s for s in sigs if (df.index[-1] - s["date"]).days <= 10]
     bull = sum(1 for s in recent if s["type"] == "bullish")
     bear = sum(1 for s in recent if s["type"] == "bearish")
     uptrend = last["Close"] > last["EMA50"]
-    direction = "LONG" if (bull > bear or (bull == bear and uptrend)) else "SHORT"
+    # Bias follows the score; fresh signals only decide borderline cases.
+    if total_score >= 55:
+        direction = "LONG"
+    elif total_score < 45:
+        direction = "SHORT"
+    else:
+        direction = "LONG" if (bull > bear or (bull == bear and uptrend)) else "SHORT"
 
     if direction == "LONG":
         entry = px
@@ -67,5 +73,6 @@ def analyze(df_raw: pd.DataFrame) -> dict:
     df = add_all(df_raw)
     sigs = detect_all(df)
     levels = support_resistance(df.iloc[-250:])
+    sc = score(df, sigs)
     return {"df": df, "signals": sigs, "levels": levels,
-            "plan": trade_plan(df, sigs, levels), "score": score(df, sigs)}
+            "plan": trade_plan(df, sigs, levels, sc["score"]), "score": sc}

@@ -71,3 +71,15 @@ Then open http://localhost:8501.
 4. Click **Deploy**. You get a URL like `https://arthos.streamlit.app`.
 
 Pushing to `main` redeploys the app automatically.
+
+## Use it like a phone app
+
+Open your app URL in Chrome on Android, tap **⋮ → Add to Home screen** (or **Install app**), and Arthos opens full-screen from its own icon. On iPhone, open it in Safari and tap **Share → Add to Home Screen**.
+
+On phones:
+- The scan shows as swipe-friendly cards instead of the wide table.
+- The tab bar stays pinned at the top.
+- Charts don't capture scrolling.
+- You can paste the API key directly in the Ask AI tab.
+
+Add `?demo=1` to the URL to start in demo-data mode.
