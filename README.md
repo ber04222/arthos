@@ -57,3 +57,17 @@ Then open http://localhost:8501.
 - Yahoo sometimes renames or delists NSE symbols. If a Nifty 50 name fails to load, edit `NIFTY50` in `data.py`.
 
 > ⚠️ This is an educational tool, not investment advice. The signals are mechanical rules and the AI output can be wrong, so do your own research and manage your risk.
+
+## Deploy (Streamlit Community Cloud, free)
+
+1. Sign in at https://share.streamlit.io with GitHub and allow access to private repos when it asks.
+2. Click **Create app → Deploy a public app from GitHub**:
+   - Repository: `ber04222/arthos`
+   - Branch: `main`
+   - Main file: `app.py`
+   - Under **Advanced settings**, choose Python 3.12.
+3. Optional: under **Advanced settings → Secrets**, add `ANTHROPIC_API_KEY = "sk-ant-..."` so Ask AI works without visitors pasting a key.
+   - **This bills your key for every visitor's AI questions.** If you add it, set the app's sharing to **Only specific people** (App settings → Sharing).
+4. Click **Deploy**. You get a URL like `https://arthos.streamlit.app`.
+
+Pushing to `main` redeploys the app automatically.

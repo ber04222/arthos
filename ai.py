@@ -18,8 +18,17 @@ rule-based plan if you disagree and say why) · **Valuation** · **Risks** · **
 End with a one-line reminder that this is educational, not financial advice."""
 
 
+def _secret(name: str) -> str | None:
+    """Read from Streamlit secrets (used on Streamlit Community Cloud); None if absent."""
+    try:
+        import streamlit as st
+        return st.secrets.get(name)
+    except Exception:
+        return None
+
+
 def get_client(api_key: str | None = None) -> anthropic.Anthropic | None:
-    key = api_key or os.environ.get("ANTHROPIC_API_KEY")
+    key = api_key or os.environ.get("ANTHROPIC_API_KEY") or _secret("ANTHROPIC_API_KEY")
     return anthropic.Anthropic(api_key=key) if key else None
 
 
