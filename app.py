@@ -13,7 +13,7 @@ import streamlit as st
 
 import ai
 import charts
-from charts import ACCENT, DOWN, FAINT, INK, MUTED, UP
+from theme import ACCENT, BAR_GRADIENT, BG, DOWN, FAINT, GRADIENT, INK, MUTED, UP, rgba
 from data import NIFTY50, NIFTY_ETF, PERIODS, get_fundamentals, get_history, get_index_quote, get_many, to_symbol
 from strategy import analyze
 from valuation import valuation
@@ -47,13 +47,13 @@ div[data-testid="stVerticalBlockBorderWrapper"] {{ border-radius: 12px !importan
 .stTabs [aria-selected="true"] {{ color: {INK} !important; }}
 
 .brand {{ display:flex; align-items:center; gap:10px; }}
-.brand .mark {{ width:30px; height:30px; border-radius:8px; background:{ACCENT}; color:white; display:grid;
+.brand .mark {{ width:30px; height:30px; border-radius:8px; background:{GRADIENT}; color:white; display:grid;
                place-items:center; font-size:15px; font-weight:700; }}
 .brand .name {{ font-size:1.5rem; font-weight:700; color:{INK}; letter-spacing:-0.02em; }}
 .brand .tag {{ color:{FAINT}; font-size:.85rem; margin-left:4px; }}
 .pill {{ display:inline-block; padding:2px 10px; border-radius:999px; font-size:12px; font-weight:600; }}
-.pill.up {{ background:rgba(22,163,74,.1); color:{UP}; }}
-.pill.down {{ background:rgba(220,38,38,.1); color:{DOWN}; }}
+.pill.up {{ background:{rgba(UP, .1)}; color:{UP}; }}
+.pill.down {{ background:{rgba(DOWN, .1)}; color:{DOWN}; }}
 .pill.neutral {{ background:#F1F5F9; color:{MUTED}; }}
 .mkt {{ text-align:right; color:{MUTED}; font-size:.8rem; line-height:1.5; }}
 .mkt b {{ color:{INK}; font-size:1.05rem; font-variant-numeric: tabular-nums; }}
@@ -70,6 +70,12 @@ div[data-testid="stVerticalBlockBorderWrapper"] {{ border-radius: 12px !importan
 .plan th {{ color:{FAINT}; font-weight:500; font-size:.72rem; text-transform:uppercase; letter-spacing:.06em; text-align:left; }}
 .plan table {{ width:100%; border-collapse:collapse; }}
 .plan tr {{ border-bottom:1px solid #F1F5F9; }}
+/* rich accents */
+.stButton button[kind="primary"] {{ background:{GRADIENT}; border:none; color:white;
+                                   box-shadow: 0 4px 14px {rgba(ACCENT, 0.28)}; }}
+.stButton button[kind="primary"]:hover {{ filter:brightness(1.07); color:white; }}
+.stTabs [data-baseweb="tab-highlight"] {{ background:{GRADIENT} !important; height:3px; border-radius:3px; }}
+.brand .mark {{ box-shadow: 0 4px 12px {rgba(ACCENT, 0.3)}; }}
 
 /* scan cards (phones) */
 .scard {{ background:#FFFFFF; border:1px solid #E5E7EB; border-radius:14px; padding:12px 14px; margin-bottom:10px; }}
@@ -77,7 +83,7 @@ div[data-testid="stVerticalBlockBorderWrapper"] {{ border-radius: 12px !importan
 .scard .sym {{ font-weight:700; color:{INK}; font-size:1rem; }}
 .scard .px {{ font-weight:600; color:{INK}; font-variant-numeric: tabular-nums; }}
 .scard .bar {{ height:6px; background:#EEF0F3; border-radius:99px; margin:9px 0 4px; overflow:hidden; }}
-.scard .bar > div {{ height:100%; background:{ACCENT}; border-radius:99px; }}
+.scard .bar > div {{ height:100%; background:{BAR_GRADIENT}; border-radius:99px; }}
 .scard .meta {{ color:{FAINT}; font-size:.78rem; display:flex; justify-content:space-between; }}
 .scard .sigs {{ color:{MUTED}; font-size:.82rem; margin:6px 0 8px; }}
 .scard .lv {{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; border-top:1px solid #F1F5F9; padding-top:8px; }}
@@ -91,7 +97,7 @@ div[data-testid="stVerticalBlockBorderWrapper"] {{ border-radius: 12px !importan
   .brand .tag {{ display:none; }}
   .mkt {{ text-align:left; }}
   /* sticky, swipeable tab bar */
-  .stTabs [data-baseweb="tab-list"] {{ position: sticky; top: 0; z-index: 99; background: #F7F8FA; gap: 1.2rem;
+  .stTabs [data-baseweb="tab-list"] {{ position: sticky; top: 0; z-index: 99; background: {BG}; gap: 1.2rem;
                                       overflow-x: auto; scrollbar-width: none; }}
   .stTabs [data-baseweb="tab"] {{ padding: .75rem 0; font-size: .95rem; }}
   /* metrics: two per row, compact */

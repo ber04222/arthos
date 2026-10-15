@@ -5,19 +5,14 @@ import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-INK = "#0F172A"
-MUTED = "#64748B"
-FAINT = "#94A3B8"
-GRID = "#EEF0F3"
-BORDER = "#E5E7EB"
-ACCENT = "#0F766E"
-UP = "#16A34A"
-DOWN = "#DC2626"
-UP_SOFT = "rgba(22,163,74,0.08)"
-DOWN_SOFT = "rgba(220,38,38,0.08)"
-FONT = "Inter, -apple-system, Segoe UI, sans-serif"
+from theme import ACCENT, ACCENT2, ACCENT_SOFT, BORDER, DOWN, FAINT, GRID, INK, MUTED, UP, rgba
 
-EMA_COLORS = {9: "#F59E0B", 21: ACCENT, 50: "#6366F1", 200: "#A1A1AA"}
+UP_SOFT = rgba(UP, 0.08)
+DOWN_SOFT = rgba(DOWN, 0.08)
+FONT = "Inter, -apple-system, Segoe UI, sans-serif"
+SCALE = [[0, ACCENT_SOFT], [1, ACCENT]]
+
+EMA_COLORS = {9: "#F59E0B", 21: ACCENT, 50: ACCENT2, 200: "#A1A1AA"}
 
 
 def base_layout(fig: go.Figure, height: int, **kw) -> go.Figure:
@@ -43,7 +38,7 @@ def price_chart(r: dict, emas: tuple[int, ...] = (21, 50), show_plan: bool = Tru
                         specs=[[{"secondary_y": True}], [{}]])
 
     # volume as a faint overlay on the bottom of the price panel
-    vcol = [UP_SOFT.replace("0.08", "0.25") if c >= o else DOWN_SOFT.replace("0.08", "0.25")
+    vcol = [rgba(UP, 0.25) if c >= o else rgba(DOWN, 0.25)
             for o, c in zip(df.Open, df.Close)]
     fig.add_trace(go.Bar(x=df.index, y=df.Volume, marker_color=vcol, marker_line_width=0, name="Volume",
                          showlegend=False, hovertemplate="Vol %{y:,.0f}<extra></extra>"), 1, 1, secondary_y=True)
@@ -94,7 +89,7 @@ def price_chart(r: dict, emas: tuple[int, ...] = (21, 50), show_plan: bool = Tru
                                bgcolor=col, borderpad=3, row=1, col=1)
 
     # RSI panel
-    fig.add_hrect(y0=30, y1=70, fillcolor="rgba(15,118,110,0.05)", line_width=0, row=2, col=1)
+    fig.add_hrect(y0=30, y1=70, fillcolor=rgba(ACCENT, 0.05), line_width=0, row=2, col=1)
     fig.add_trace(go.Scatter(x=df.index, y=df.RSI, mode="lines", line=dict(color=ACCENT, width=1.3),
                              name="RSI", showlegend=False, hovertemplate="RSI %{y:.0f}<extra></extra>"), 2, 1)
 
@@ -144,7 +139,8 @@ def score_bars(score: dict) -> go.Figure:
     pct = [100 * v / m for v, m in zip(vals, maxes)]
     fig = go.Figure()
     fig.add_trace(go.Bar(y=names, x=[100] * 4, orientation="h", marker_color=GRID, hoverinfo="skip", width=0.42))
-    fig.add_trace(go.Bar(y=names, x=pct, orientation="h", marker_color=ACCENT, width=0.42, hoverinfo="skip"))
+    fig.add_trace(go.Bar(y=names, x=pct, orientation="h", marker=dict(color=pct, colorscale=SCALE, cmin=0, cmax=100), width=0.42,
+                         hoverinfo="skip"))
     for n, v, m in zip(names, vals, maxes):
         fig.add_annotation(x=100, y=n, text=f"{v:.0f}<span style='color:{FAINT}'>/{m}</span>", showarrow=False,
                            xanchor="left", xshift=8, font=dict(size=11, color=INK))
@@ -223,7 +219,7 @@ def opportunity_map(res: pd.DataFrame) -> go.Figure:
 
 def signal_mix(counts: pd.Series) -> go.Figure:
     counts = counts.sort_values()
-    fig = go.Figure(go.Bar(y=counts.index, x=counts.values, orientation="h", marker_color=ACCENT, width=0.55,
+    fig = go.Figure(go.Bar(y=counts.index, x=counts.values, orientation="h", marker=dict(color=counts.values, colorscale=SCALE, cmin=0, cmax=max(counts.max(), 1)), width=0.55,
                            text=counts.values, textposition="outside", textfont=dict(size=11, color=MUTED),
                            hovertemplate="%{y}: %{x}<extra></extra>"))
     base_layout(fig, 330, showlegend=False)
@@ -234,7 +230,7 @@ def signal_mix(counts: pd.Series) -> go.Figure:
 
 # ------------------------------------------------------------------ portfolio
 def allocation_donut(buckets: pd.Series, capital: float) -> go.Figure:
-    palette = {"Momentum": ACCENT, "Quality": "#6366F1", "Nifty 50": "#CBD5E1"}
+    palette = {"Momentum": ACCENT, "Quality": ACCENT2, "Nifty 50": "#CBD5E1"}
     fig = go.Figure(go.Pie(labels=buckets.index, values=buckets.values, hole=0.68, sort=False,
                            marker=dict(colors=[palette.get(b, FAINT) for b in buckets.index],
                                        line=dict(color="white", width=3)),
